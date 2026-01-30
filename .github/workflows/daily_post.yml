@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Permiso para que GitHub guarde la base de datos
+      contents: write 
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
@@ -16,7 +16,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10' # Versión actualizada para evitar advertencias
+          python-version: '3.10'
           
       - name: Instalar dependencias
         run: pip install -r requirements.txt
@@ -26,10 +26,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python script.py
 
-      - name: Guardar Historial (Memoria)
+      - name: Guardar historial
         run: |
           git config --global user.name 'IA-Automator'
           git config --global user.email 'ia@automator.com'
           git add historial.db
-          git commit -m "Update: Noticia procesada" || echo "Sin cambios"
+          git commit -m "Registro de publicación" || echo "Sin cambios"
           git push
