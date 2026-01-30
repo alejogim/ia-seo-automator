@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 # 1. IA
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
 
 # 2. WP (Configuración segura)
 WP_URL = "https://TU-SITIO-WEB.com/wp-json/wp/v2/posts"
