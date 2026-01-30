@@ -33,7 +33,7 @@ def ejecutar():
         try:
             # Nueva forma de llamar a Gemini 1.5 Flash
             response = client.models.generate_content(
-                model="gemini-1.5-flash", 
+                model="gemini-1.5-flash-002", 
                 contents=f"Escribe un post SEO profesional en español sobre: {entry.title}. Usa HTML (h2, p)."
             )
             
