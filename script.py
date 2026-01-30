@@ -3,17 +3,22 @@ import sqlite3
 import google.generativeai as genai
 import feedparser
 import requests
+import warnings
+
+# Desactivar avisos visuales de advertencia en el log para leer mejor
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # 1. CONFIGURACIÓN DE IA (Google Gemini)
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# 2. CONFIGURACIÓN DE WORDPRESS (Del cliente)
-WP_URL = "https://TU-SITIO-WEB.com/wp-json/wp/v2/posts" # <-- CAMBIA ESTO
-WP_USER = os.environ.get("WP_USER")
-WP_PASS = os.environ.get("WP_APP_PASSWORD")
+# 2. CONFIGURACIÓN DE WORDPRESS (Para el paso final)
+# Si aún no tienes estas variables en Secrets, el script solo imprimirá el texto
+WP_URL = "https://TU-SITIO-WEB.com/wp-json/wp/v2/posts" 
+WP_USER = os.environ.get("WP_USER", "usuario_ejemplo")
+WP_PASS = os.environ.get("WP_APP_PASSWORD", "pass_ejemplo")
 
-# 3. BASE DE DATOS LOCAL (Persistencia con SQLite)
+# 3. BASE DE DATOS LOCAL
 def iniciar_db():
     conn = sqlite3.connect('historial.db')
     c = conn.cursor()
@@ -21,66 +26,62 @@ def iniciar_db():
     conn.commit()
     return conn
 
-# 4. FUNCIÓN PARA PUBLICAR EN WORDPRESS
+# 4. FUNCIÓN PARA PUBLICAR
 def publicar_wp(titulo, contenido):
-    payload = {
-        "title": titulo,
-        "content": contenido,
-        "status": "publish" # Cambia a "draft" si quieres revisarlo antes
-    }
+    if "TU-SITIO-WEB" in WP_URL:
+        print("⚠️ Salteando publicación: No se configuró una URL real de WordPress.")
+        return
+    
+    payload = {"title": titulo, "content": contenido, "status": "publish"}
     response = requests.post(WP_URL, json=payload, auth=(WP_USER, WP_PASS))
     if response.status_code == 201:
-        print("✅ ¡Artículo publicado exitosamente en WordPress!")
+        print("✅ ¡Publicado en WordPress con éxito!")
     else:
-        print(f"❌ Error al publicar: {response.status_code} - {response.text}")
+        print(f"❌ Error WP: {response.status_code}")
 
 # 5. LÓGICA PRINCIPAL
-def ejecutar_seo_automator():
+def ejecutar():
     conn = iniciar_db()
     c = conn.cursor()
     
-    # RSS de noticias (Ejemplo: Noticias de SEO/Tech)
-    feed = feedparser.parse("https://www.searchenginelane.com/feed/")
+    # Usamos un feed de tecnología en español para la prueba
+    feed = feedparser.parse("https://hipertextual.com/feed")
     
-    # Procesamos solo la noticia más reciente
     if feed.entries:
         entry = feed.entries[0]
-        c.execute("SELECT * FROM publicados WHERE link=?", (entry.link,))
         
+        # Consultamos si ya existe
+        c.execute("SELECT * FROM publicados WHERE link=?", (entry.link,))
         if not c.fetchone():
-            print(f"🚀 Procesando nueva noticia: {entry.title}")
+            print(f"\n🚀 PROCESANDO NOTICIA: {entry.title}")
             
-            # Prompt optimizado para Gemini
             prompt = f"""
-            Actúa como un experto en SEO y redacción para blogs. 
-            Escribe un artículo completo en español basado en la siguiente noticia: {entry.title}
-            Usa el link como referencia: {entry.link}
-            
-            REGLAS:
-            1. Usa formato HTML (h2, p, strong, ul, li). No uses etiquetas html/body/head.
-            2. El tono debe ser profesional y útil para el lector.
-            3. Estructura el post con una introducción, 2 subtítulos y una conclusión.
-            4. Optimiza para la palabra clave principal del título.
+            Escribe un artículo de blog SEO en español. 
+            Tema: {entry.title}
+            Referencia: {entry.link}
+            Usa formato HTML (h2, p, strong).
             """
             
             response = model.generate_content(prompt)
             articulo_html = response.text
             
-            # Mostramos el resultado en el log para control
-            print("\n--- ARTÍCULO GENERADO ---")
+            # ESTO ES LO QUE BUSCAS EN EL LOG:
+            print("\n" + "X"*60)
+            print("👇 AQUÍ ESTÁ TU ARTÍCULO GENERADO 👇")
+            print("X"*60)
             print(articulo_html)
-            print("-------------------------\n")
+            print("X"*60 + "\n")
             
-            # Publicamos en el WordPress del cliente
+            # Intento de publicación
             publicar_wp(entry.title, articulo_html)
             
-            # Guardamos en la memoria local para no repetir mañana
+            # Guardar para no repetir
             c.execute("INSERT INTO publicados VALUES (?)", (entry.link,))
             conn.commit()
         else:
-            print("😴 No hay noticias nuevas. La última ya fue publicada.")
+            print(f"\n😴 La noticia '{entry.title}' ya fue procesada anteriormente.")
     
     conn.close()
 
 if __name__ == "__main__":
-    ejecutar_seo_automator()
+    ejecutar()
