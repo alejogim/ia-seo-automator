@@ -26,10 +26,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python script.py
 
-      - name: Guardar historial
+      - name: Guardar post generado en el repo
         run: |
           git config --global user.name 'IA-Automator'
           git config --global user.email 'ia@automator.com'
-          git add historial.db
-          git commit -m "Registro de publicación" || echo "Sin cambios"
+          git add ultimo_post.html
+          git commit -m "📝 Nuevo post generado por IA" || echo "Sin cambios"
           git push
